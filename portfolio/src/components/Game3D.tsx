@@ -67,7 +67,7 @@ const sampleData = {
     const characterGeometry = new THREE.BoxGeometry(1, 1, 1);
     const characterMaterial = new THREE.MeshLambertMaterial({ color: 'white' });
     const character = new THREE.Mesh(characterGeometry, characterMaterial);
-    character.position.y = 0.5; // Half of cube height above ground
+    character.position.set(-25, 0.51, -45); // Spawn inside the alleyway
     scene.add(character);
     characterRef.current = character;
 
@@ -80,12 +80,37 @@ const interactiveObjects: Array<{ mesh: THREE.Mesh, info: any }> = [];
 const loader = new GLTFLoader();
 loader.load('/melbourne.glb', (gltf) => {
   const melbourne = gltf.scene;
-  melbourne.position.set(0, 0, -6);
-  melbourne.scale.set(10, 10, 10); 
-  melbourne.rotation.y = Math.PI / 2; // Rotate to face the camera
+  melbourne.position.set(-25, 0, -45); // Edge of the world (adjust as needed)
+  melbourne.scale.set(10, 10, 10);
+  melbourne.rotation.y = -Math.PI / 2;
   scene.add(melbourne);
 });
 
+
+
+const orbGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+const orbMaterial = new THREE.MeshBasicMaterial({ 
+  color: 0x00FFFF, // Cyan glow
+  transparent: true,
+  opacity: 0.8
+});
+const lightOrb = new THREE.Mesh(orbGeometry, orbMaterial);
+lightOrb.position.set(-25, 2.0, -40); // At the alley entrance, higher up
+scene.add(lightOrb);
+    
+// Add a point light to make it actually glow
+const orbLight = new THREE.PointLight(0x00FFFF, 1, 10);
+orbLight.position.set(-25, 2.0, -40); // Match the orb position
+scene.add(orbLight);
+
+interactiveObjects.push({ 
+  mesh: lightOrb, 
+  info: { 
+    title: "Melbourne, Australia 🇦🇺", 
+    content: "Melbourne is where I am currently based. Here I am able to work in person as well as remotely and WFH",
+    color: 0x00FFFF 
+  }
+});
 
 interactiveObjectsRef.current = interactiveObjects;
 
@@ -96,29 +121,18 @@ interactiveObjectsRef.current = interactiveObjects;
       const treeMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
       const tree = new THREE.Mesh(treeGeometry, treeMaterial);
       
+      /*
       tree.position.x = (Math.random() - 0.5) * 80;
       tree.position.z = (Math.random() - 0.5) * 80;
       tree.position.y = 2;
       scene.add(tree);
+      */
     }
 
     // Event listeners
     const handleKeyDown = (event: KeyboardEvent) => {
       keysRef.current[event.code] = true;
 
-      // Camera look controls
-      if (event.code === 'ArrowLeft') {
-        cameraAngleRef.current.azimuth -= 0.05;
-      }
-      if (event.code === 'ArrowRight') {
-        cameraAngleRef.current.azimuth += 0.05;
-      }
-      if (event.code === 'ArrowUp') {
-        cameraAngleRef.current.elevation = Math.min(cameraAngleRef.current.elevation + 0.05, Math.PI / 2 - 0.1);
-      }
-      if (event.code === 'ArrowDown') {
-        cameraAngleRef.current.elevation = Math.max(cameraAngleRef.current.elevation - 0.05, 0.05);
-      }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -157,10 +171,10 @@ interactiveObjectsRef.current = interactiveObjects;
     window.addEventListener('resize', handleResize);
 
     // Animation loop
-    const moveSpeed = 0.12;
-    const jumpPower = 0.25;
-    const gravity = -0.015;
-    const groundLevel = 0.5; // Half of cube height
+    const moveSpeed = 0.8;    
+const jumpPower = 0.8;    // Increase from 0.45 to 0.8 for higher jumps
+const gravity = -0.04;    // Increase from -0.02 to -0.04 for faster falling
+const groundLevel = 0.5;
     
     const animate = () => {
       requestAnimationFrame(animate);
@@ -217,13 +231,12 @@ if (moveForward || moveBackward || moveLeft || moveRight) {
         }
       }
 
-      // Simple movement animation - slight rotation when moving
-      const isMovingHorizontally = keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'] ||
-                                   keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'];
+      // Simple movement animation 
+      const isMovingHorizontally = keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'];
       
       if (isMovingHorizontally) {
-        character.rotation.x += 0.1;
-        character.rotation.z += 0.05;
+        character.rotation.x += 0.2; // Increase from 0.1 to 0.3
+        character.rotation.z += 0.10; // Increase from 0.05 to 0.15
       }
 
       // Check interactions with objects
