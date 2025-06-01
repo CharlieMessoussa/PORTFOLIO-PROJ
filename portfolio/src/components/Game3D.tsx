@@ -17,6 +17,7 @@ export default function Game3D() {
   const interactiveObjectsRef = useRef<Array<{ mesh: THREE.Mesh, info: any }>>([]);
   const [currentInfo, setCurrentInfo] = useState<any>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const lastInfoRef = useRef<any>(null); // <-- Add this
 
 
   // Sample interactive object data
@@ -168,28 +169,29 @@ interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
       }
 
       // Check interactions with objects
-        let nearObject = null;
-        interactiveObjectsRef.current.forEach(({ mesh, info }) => {
+      let nearObject: any = null;
+      interactiveObjectsRef.current.forEach(({ mesh, info }) => {
         const distance = character.position.distanceTo(mesh.position);
         if (distance < 2.5) {
-            nearObject = info;
-            // Add glowing effect
-            if (mesh.material instanceof THREE.MeshLambertMaterial) {
+          nearObject = info;
+          // Add glowing effect
+          if (mesh.material instanceof THREE.MeshLambertMaterial) {
             mesh.material.emissive.setHex(0x333333);
-            }
+          }
         } else {
-            // Remove glowing effect
-            if (mesh.material instanceof THREE.MeshLambertMaterial) {
+          // Remove glowing effect
+          if (mesh.material instanceof THREE.MeshLambertMaterial) {
             mesh.material.emissive.setHex(0x000000);
-            }
+          }
         }
-        });
+      });
 
-// Update info display
-if (nearObject !== currentInfo) {
-  setCurrentInfo(nearObject);
-  setShowInfo(!!nearObject);
-}
+      // Only update state if the info actually changed
+      if (lastInfoRef.current !== nearObject) {
+        lastInfoRef.current = nearObject;
+        setCurrentInfo(nearObject);
+        setShowInfo(!!nearObject);
+      }
 
       // Camera positioned behind and above the cube
       const cameraOffset = new THREE.Vector3(0, 6, 10);
