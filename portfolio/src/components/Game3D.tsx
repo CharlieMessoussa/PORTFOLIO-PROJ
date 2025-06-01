@@ -216,17 +216,53 @@ if (nearObject !== currentInfo) {
     };
   }, []);
 
-  return (
-    <div className="relative w-full h-screen">
-      <div 
-        ref={mountRef} 
-        className="w-full h-full"
-      />
-      <div className="absolute top-4 left-4 text-white z-10 bg-black bg-opacity-50 p-3 rounded">
-        <div>Use WASD or Arrow Keys to move</div>
-        <div>SPACE or W to jump</div>
-        <div>Simple cube physics!</div>
-      </div>
+ return (
+  <div className="relative w-full h-screen">
+    <div 
+      ref={mountRef} 
+      className="w-full h-full"
+    />
+    
+    <div style={{
+      position: 'absolute',
+      top: '16px',
+      left: '16px',
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      color: 'white',
+      padding: '16px',
+      borderRadius: '8px',
+      zIndex: 100
+    }}>
+      <div>Use WASD or Arrow Keys to move</div>
+      <div>SPACE to jump</div>
+      <div>Simple cube physics!</div>
     </div>
-  );
+
+    {showInfo && currentInfo && (
+      <div style={{
+        position: 'absolute',
+        bottom: '16px',
+        right: '16px',
+        width: '320px',
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        color: 'white',
+        padding: '24px',
+        borderRadius: '8px',
+        border: '1px solid white',
+        zIndex: 100
+      }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#ffd700' }}>
+          {currentInfo.title}
+        </h3>
+        <p style={{ marginBottom: '16px' }}>{currentInfo.content}</p>
+        <div style={{ fontSize: '12px', color: '#ccc' }}>
+          Move away to close this info panel
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+
+
 }
