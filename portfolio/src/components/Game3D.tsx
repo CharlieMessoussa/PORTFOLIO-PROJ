@@ -10,8 +10,9 @@ export default function Game3D() {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const characterRef = useRef<THREE.Mesh | null>(null);
   const keysRef = useRef<{ [key: string]: boolean }>({});
-  const mouseRef = useRef({ x: 0, y: 0 });
+  const mouseRef = useRef<{ x: number; y: number; deltaX: number; deltaY: number }>({ x: 0, y: 0, deltaX: 0, deltaY: 0 });
   const cameraAngleRef = useRef(0);
+  const cameraVerticalAngleRef = useRef(0.3); // Start with slight downward angle
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -79,6 +80,11 @@ export default function Game3D() {
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      const deltaX = event.movementX || 0;
+      const deltaY = event.movementY || 0;
+      
+      mouseRef.current.deltaX = deltaX;
+      mouseRef.current.deltaY = deltaY;
       mouseRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouseRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
     };
@@ -90,13 +96,21 @@ export default function Game3D() {
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
+    const handleClick = () => {
+      if (mountRef.current) {
+        mountRef.current.requestPointerLock();
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('click', handleClick);
     window.addEventListener('resize', handleResize);
 
     // Animation loop
     const moveSpeed = 0.15;
+    const mouseSensitivity = 0.002;
     
     const animate = () => {
       requestAnimationFrame(animate);
@@ -108,10 +122,18 @@ export default function Game3D() {
       const keys = keysRef.current;
       const mouse = mouseRef.current;
 
-      // Update camera angle based on mouse (but slower)
-      cameraAngleRef.current += mouse.x * 0.005;
+      // Update camera angles based on mouse movement (faster this time)
+      cameraAngleRef.current -= mouse.deltaX * mouseSensitivity;
+      cameraVerticalAngleRef.current -= mouse.deltaY * mouseSensitivity;
+      
+      // Clamp vertical angle to prevent camera flipping
+      cameraVerticalAngleRef.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraVerticalAngleRef.current));
+      
+      // Reset mouse deltas
+      mouse.deltaX = 0;
+      mouse.deltaY = 0;
 
-      // Calculate forward and right directions based on camera angle
+      // Calculate forward and right directions based on horizontal camera angle only
       const forward = new THREE.Vector3(
         -Math.sin(cameraAngleRef.current), 
         0, 
@@ -123,7 +145,7 @@ export default function Game3D() {
         -Math.sin(cameraAngleRef.current)
       );
 
-      // Handle movement relative to camera direction
+      // Handle movement relative to camera horizontal direction
       if (keys['KeyW'] || keys['ArrowUp']) {
         character.position.add(forward.clone().multiplyScalar(moveSpeed));
       }
@@ -137,13 +159,17 @@ export default function Game3D() {
         character.position.add(right.clone().multiplyScalar(moveSpeed));
       }
 
-      // Update camera to smoothly follow character
-      const cameraDistance = 10;
-      const cameraHeight = 6;
+      // Update camera position with both horizontal and vertical angles
+      const cameraDistance = 12;
+      const baseHeight = 5;
+      
+      // Calculate camera position with vertical angle
+      const horizontalDistance = cameraDistance * Math.cos(cameraVerticalAngleRef.current);
+      const cameraHeight = baseHeight + cameraDistance * Math.sin(cameraVerticalAngleRef.current);
       
       // Calculate desired camera position
-      const desiredCameraX = character.position.x + Math.sin(cameraAngleRef.current) * cameraDistance;
-      const desiredCameraZ = character.position.z + Math.cos(cameraAngleRef.current) * cameraDistance;
+      const desiredCameraX = character.position.x + Math.sin(cameraAngleRef.current) * horizontalDistance;
+      const desiredCameraZ = character.position.z + Math.cos(cameraAngleRef.current) * horizontalDistance;
       const desiredCameraY = character.position.y + cameraHeight;
       
       // Smooth camera following (lerp for smooth movement)
@@ -152,8 +178,10 @@ export default function Game3D() {
       camera.position.z += (desiredCameraZ - camera.position.z) * lerpFactor;
       camera.position.y += (desiredCameraY - camera.position.y) * lerpFactor;
       
-      // Always look at the character
-      camera.lookAt(character.position);
+      // Always look at the character (slightly above center for better view)
+      const lookAtTarget = character.position.clone();
+      lookAtTarget.y += 0.5; // Look at upper part of character
+      camera.lookAt(lookAtTarget);
 
       renderer.render(scene, camera);
     };
@@ -165,6 +193,7 @@ export default function Game3D() {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
       document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('click', handleClick);
       window.removeEventListener('resize', handleResize);
       
       if (mountRef.current && renderer.domElement) {
@@ -182,7 +211,8 @@ export default function Game3D() {
       />
       <div className="absolute top-4 left-4 text-white z-10 bg-black bg-opacity-50 p-3 rounded">
         <div>Use WASD or Arrow Keys to move</div>
-        <div>Mouse to look around</div>
+        <div>Mouse to look around (move mouse to rotate camera)</div>
+        <div>Click to lock cursor for better control</div>
       </div>
     </div>
   );
