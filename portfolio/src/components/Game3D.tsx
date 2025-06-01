@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 export default function Game3D() {
@@ -12,6 +12,20 @@ export default function Game3D() {
   const keysRef = useRef<{ [key: string]: boolean }>({});
   const velocityRef = useRef({ x: 0, y: 0, z: 0 });
   const isJumpingRef = useRef(false);
+  
+  //interaction with objects
+  const interactiveObjectsRef = useRef<Array<{ mesh: THREE.Mesh, info: any }>>([]);
+  const [currentInfo, setCurrentInfo] = useState<any>(null);
+  const [showInfo, setShowInfo] = useState(false);
+
+
+  // Sample interactive object data
+const sampleData = {
+  title: "Welcome! 👋",
+  content: "This is a test interactive object. You're close enough to read this message!",
+  color: 0xFFD700
+};
+
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -52,6 +66,17 @@ export default function Game3D() {
     scene.add(character);
     characterRef.current = character;
 
+
+    const testGeometry = new THREE.BoxGeometry(1, 1, 1);
+const testMaterial = new THREE.MeshLambertMaterial({ color: sampleData.color });
+const testObject = new THREE.Mesh(testGeometry, testMaterial);
+testObject.position.set(5, 0.5, 5); // Position it near the character
+scene.add(testObject);
+
+// Add to interactive objects array
+interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
+
+    
     // Add some environment objects
     for (let i = 0; i < 10; i++) {
       const treeGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4);
@@ -141,6 +166,30 @@ export default function Game3D() {
         character.rotation.x += 0.1;
         character.rotation.z += 0.05;
       }
+
+      // Check interactions with objects
+        let nearObject = null;
+        interactiveObjectsRef.current.forEach(({ mesh, info }) => {
+        const distance = character.position.distanceTo(mesh.position);
+        if (distance < 2.5) {
+            nearObject = info;
+            // Add glowing effect
+            if (mesh.material instanceof THREE.MeshLambertMaterial) {
+            mesh.material.emissive.setHex(0x333333);
+            }
+        } else {
+            // Remove glowing effect
+            if (mesh.material instanceof THREE.MeshLambertMaterial) {
+            mesh.material.emissive.setHex(0x000000);
+            }
+        }
+        });
+
+// Update info display
+if (nearObject !== currentInfo) {
+  setCurrentInfo(nearObject);
+  setShowInfo(!!nearObject);
+}
 
       // Camera positioned behind and above the cube
       const cameraOffset = new THREE.Vector3(0, 6, 10);
