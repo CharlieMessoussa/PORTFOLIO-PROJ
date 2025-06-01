@@ -22,15 +22,6 @@ export default function Game3D() {
   const [showInfo, setShowInfo] = useState(false);
   const lastInfoRef = useRef<any>(null);
 
-
-  // Sample interactive object data
-const sampleData = {
-  title: "Welcome! 👋",
-  content: "This is a test interactive object. You're close enough to read this message!",
-  color: 0xFFD700
-};
-
-
   useEffect(() => {
     if (!mountRef.current) return;
 
@@ -70,139 +61,311 @@ const sampleData = {
     scene.add(character);
     characterRef.current = character;
 
-
     // Create multiple interactive objects
-const interactiveObjects: Array<{ mesh: THREE.Mesh, info: any }> = [];
+    const interactiveObjects: Array<{ mesh: THREE.Mesh, info: any }> = [];
 
+    /// Load Melbourne alleyway model
+    const loader = new GLTFLoader();
+    loader.load('/melbourne.glb', (gltf) => {
+      const melbourne = gltf.scene;
+      melbourne.position.set(-25, 0, -45); // Edge of the world (adjust as needed)
+      melbourne.scale.set(10, 10, 10);
+      melbourne.rotation.y = -Math.PI / 2;
+      scene.add(melbourne);
+    });
 
-/// Load Melbourne alleyway model
-const loader = new GLTFLoader();
-loader.load('/melbourne.glb', (gltf) => {
-  const melbourne = gltf.scene;
-  melbourne.position.set(-25, 0, -45); // Edge of the world (adjust as needed)
-  melbourne.scale.set(10, 10, 10);
-  melbourne.rotation.y = -Math.PI / 2;
-  scene.add(melbourne);
-});
+    /// Load Desk  model
+    loader.load('/low_poly_computer_desk.glb', (gltf) => {
+      const desk = gltf.scene;
+      desk.position.set(-20, 0, -45); 
+      desk.scale.set(0.05, 0.05, 0.05);
+      desk.rotation.y = 0;
+      scene.add(desk);
+    });
 
-/// Load Desk  model
-loader.load('/low_poly_computer_desk.glb', (gltf) => {
-  const desk = gltf.scene;
-  desk.position.set(-20, 0, -45); 
-  desk.scale.set(0.05, 0.05, 0.05);
-  desk.rotation.y = 0;
-  scene.add(desk);
-});
+    // Create Project Area
+    const projectAreaX = 25;
+    const projectAreaZ = 0;
 
+    // Create clean, minimal floor area
+    const projectFloorGeometry = new THREE.PlaneGeometry(40, 30);
+    const projectFloorMaterial = new THREE.MeshLambertMaterial({ 
+      color: 0x1a1a1a,
+      transparent: true,
+      opacity: 0.3
+    });
+    const projectFloor = new THREE.Mesh(projectFloorGeometry, projectFloorMaterial);
+    projectFloor.rotation.x = -Math.PI / 2;
+    projectFloor.position.set(projectAreaX, 0.01, projectAreaZ);
+    scene.add(projectFloor);
 
+    // Clean, minimal project data
+    const cleanProjectData = [
+      {
+        title: "E-Commerce Platform",
+        year: "2024",
+        tech: ["React", "Node.js", "MongoDB"],
+        description: "Full-stack e-commerce solution with real-time inventory and payment processing",
+        color: 0x4A90E2,
+        position: { x: projectAreaX - 12, z: projectAreaZ - 8 }
+      },
+      {
+        title: "Mobile Game",
+        year: "2023", 
+        tech: ["Unity", "C#", "Firebase"],
+        description: "Cross-platform puzzle game with 10k+ downloads",
+        color: 0xF5A623,
+        position: { x: projectAreaX, z: projectAreaZ - 10 }
+      },
+      {
+        title: "AI Assistant",
+        year: "2024",
+        tech: ["React", "OpenAI", "Python"],
+        description: "Conversational AI with voice recognition and context awareness",
+        color: 0x7ED321,
+        position: { x: projectAreaX + 12, z: projectAreaZ - 8 }
+      }
+    ];
 
-const orbGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-const orbMaterial = new THREE.MeshBasicMaterial({ 
-  color: 0x00FFFF, // Cyan glow
-  transparent: true,
-  opacity: 0.8
-});
-const lightOrb = new THREE.Mesh(orbGeometry, orbMaterial);
-lightOrb.position.set(-25, 2.0, -40); // At the alley entrance, higher up
-scene.add(lightOrb);
-    
-// Add a point light to make it actually glow
-const orbLight = new THREE.PointLight(0x00FFFF, 1, 10);
-orbLight.position.set(-25, 2.0, -40); // Match the orb position
-scene.add(orbLight);
+    // Create minimal, floating project cards
+    cleanProjectData.forEach((project, index) => {
+      // Create main card (simple, clean geometry)
+      const cardGeometry = new THREE.PlaneGeometry(8, 5);
+      
+      // Create text canvas (minimal, clean typography)
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 320;
+      const context = canvas.getContext('2d')!;
 
-// Create floating "ABOUT ME" text sign above alleyway
-const createFloatingTextSign = () => {
-  // Create canvas for text
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 128;
-  const context = canvas.getContext('2d')!;
+      // Clean background
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, 512, 320);
+      
+      // Subtle border
+      context.strokeStyle = '#e0e0e0';
+      context.lineWidth = 2;
+      context.strokeRect(1, 1, 510, 318);
 
-  // Clear and set background
-  context.fillStyle = '#2c3e50'; // Dark blue background
-  context.fillRect(0, 0, 512, 128);
-  
-  // Add border
-  context.strokeStyle = '#ffffff';
-  context.lineWidth = 4;
-  context.strokeRect(4, 4, 504, 120);
+      // Project title (clean, modern font)
+      context.fillStyle = '#1a1a1a';
+      context.font = 'bold 32px system-ui, -apple-system, sans-serif';
+      context.textAlign = 'left';
+      context.fillText(project.title, 30, 60);
 
-  // Draw text
-  context.fillStyle = '#ffffff'; // White text
-  context.font = 'bold 40px Arial';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText('ABOUT ME', 256, 64);
+      // Year
+      context.fillStyle = '#666666';
+      context.font = '20px system-ui, -apple-system, sans-serif';
+      context.fillText(project.year, 30, 90);
 
-  // Create texture
-  const texture = new THREE.CanvasTexture(canvas);
-  
-  // Create floating sign
-  const signGeometry = new THREE.PlaneGeometry(10, 2.5);
-  const signMaterial = new THREE.MeshBasicMaterial({ 
-    map: texture,
-    transparent: true,
-    side: THREE.DoubleSide
-  });
-  
-  const floatingSign = new THREE.Mesh(signGeometry, signMaterial);
-  floatingSign.position.set(-25, 10, -45); // High above the alleyway
-  scene.add(floatingSign);
+      // Tech stack (minimal pills)
+      context.fillStyle = '#f5f5f5';
+      let techX = 30;
+      project.tech.forEach((tech, i) => {
+        const metrics = context.measureText(tech);
+        const pillWidth = metrics.width + 20;
+        
+        // Pill background
+        context.fillStyle = '#f5f5f5';
+        context.beginPath();
+        context.roundRect(techX, 110, pillWidth, 25, 12);
+        context.fill();
+        
+        // Pill text
+        context.fillStyle = '#333333';
+        context.font = '14px system-ui, -apple-system, sans-serif';
+        context.fillText(tech, techX + 10, 128);
+        
+        techX += pillWidth + 10;
+      });
 
-  // Add glow effect
-  const glowGeometry = new THREE.PlaneGeometry(11, 3);
-  const glowMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0x00ff88,
-    transparent: true,
-    opacity: 0.2,
-    side: THREE.DoubleSide
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.set(-25, 10, -45.1);
-  scene.add(glow);
+      // Description
+      context.fillStyle = '#333333';
+      context.font = '16px system-ui, -apple-system, sans-serif';
+      context.textAlign = 'left';
+      
+      // Simple word wrap
+      const words = project.description.split(' ');
+      let line = '';
+      let y = 180;
+      
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = context.measureText(testLine);
+        
+        if (metrics.width > 450 && n > 0) {
+          context.fillText(line, 30, y);
+          line = words[n] + ' ';
+          y += 24;
+        } else {
+          line = testLine;
+        }
+      }
+      context.fillText(line, 30, y);
 
-  // Add light
-  const signLight = new THREE.PointLight(0x00ff88, 2, 20);
-  signLight.position.set(-25, 10, -43);
-  scene.add(signLight);
+      const texture = new THREE.CanvasTexture(canvas);
+      const cardMaterial = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide
+      });
+      
+      const card = new THREE.Mesh(cardGeometry, cardMaterial);
+      card.position.set(project.position.x, 3 + index * 0.1, project.position.z);
+      card.castShadow = true;
+      scene.add(card);
 
-  return { sign: floatingSign, glow: glow };
-};
+      // Minimal interaction indicator (small, subtle dot)
+      const indicatorGeometry = new THREE.CircleGeometry(0.15, 16);
+      const indicatorMaterial = new THREE.MeshBasicMaterial({ 
+        color: project.color,
+        transparent: true,
+        opacity: 0.8
+      });
+      const indicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+      indicator.position.set(project.position.x, 0.1, project.position.z + 3);
+      indicator.rotation.x = -Math.PI / 2;
+      scene.add(indicator);
 
-const { sign: aboutMeSign, glow: signGlow } = createFloatingTextSign();
+      // Very subtle ambient light
+      const projectLight = new THREE.PointLight(project.color, 0.3, 12);
+      projectLight.position.set(project.position.x, 5, project.position.z);
+      scene.add(projectLight);
 
+      // Add to interactive objects
+      interactiveObjects.push({
+        mesh: indicator,
+        info: {
+          title: project.title + " (" + project.year + ")",
+          content: project.description + ". Built with: " + project.tech.join(", "),
+          color: project.color
+        }
+      });
+    });
+
+    // Minimal area label (very subtle)
+    const createMinimalSign = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 100;
+      const context = canvas.getContext('2d')!;
+
+      context.fillStyle = 'rgba(255,255,255,0.95)';
+      context.fillRect(0, 0, 400, 100);
+      
+      context.fillStyle = '#1a1a1a';
+      context.font = '24px system-ui, -apple-system, sans-serif';
+      context.textAlign = 'center';
+      context.fillText('Projects', 200, 60);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      
+      const signGeometry = new THREE.PlaneGeometry(6, 1.5);
+      const signMaterial = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide
+      });
+      
+      const sign = new THREE.Mesh(signGeometry, signMaterial);
+      sign.position.set(projectAreaX - 15, 2, projectAreaZ + 10);
+      scene.add(sign);
+
+      return sign;
+    };
+
+    const projectsSign = createMinimalSign();
+
+    const orbGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+    const orbMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00FFFF, // Cyan glow
+      transparent: true,
+      opacity: 0.8
+    });
+    const lightOrb = new THREE.Mesh(orbGeometry, orbMaterial);
+    lightOrb.position.set(-25, 2.0, -40); // At the alley entrance, higher up
+    scene.add(lightOrb);
+        
+    // Add a point light to make it actually glow
+    const orbLight = new THREE.PointLight(0x00FFFF, 1, 10);
+    orbLight.position.set(-25, 2.0, -40); // Match the orb position
+    scene.add(orbLight);
+
+    // Create floating "ABOUT ME" text sign above alleyway
+    const createFloatingTextSign = () => {
+      // Create canvas for text
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 128;
+      const context = canvas.getContext('2d')!;
+
+      // Clear and set background
+      context.fillStyle = '#2c3e50'; // Dark blue background
+      context.fillRect(0, 0, 512, 128);
+      
+      // Add border
+      context.strokeStyle = '#ffffff';
+      context.lineWidth = 4;
+      context.strokeRect(4, 4, 504, 120);
+
+      // Draw text
+      context.fillStyle = '#ffffff'; // White text
+      context.font = 'bold 40px Arial';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('ABOUT ME', 256, 64);
+
+      // Create texture
+      const texture = new THREE.CanvasTexture(canvas);
+      
+      // Create floating sign
+      const signGeometry = new THREE.PlaneGeometry(10, 2.5);
+      const signMaterial = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide
+      });
+      
+      const floatingSign = new THREE.Mesh(signGeometry, signMaterial);
+      floatingSign.position.set(-25, 10, -45); // High above the alleyway
+      scene.add(floatingSign);
+
+      // Add glow effect
+      const glowGeometry = new THREE.PlaneGeometry(11, 3);
+      const glowMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x00ff88,
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      glow.position.set(-25, 10, -45.1);
+      scene.add(glow);
+
+      // Add light
+      const signLight = new THREE.PointLight(0x00ff88, 2, 20);
+      signLight.position.set(-25, 10, -43);
+      scene.add(signLight);
+
+      return { sign: floatingSign, glow: glow };
+    };
+
+    const { sign: aboutMeSign, glow: signGlow } = createFloatingTextSign();
 
     interactiveObjects.push({ 
-  mesh: lightOrb, 
-  info: { 
-    title: "Melbourne, Australia 🇦🇺", 
-    content: "Currently based in Melbourne, I offer both remote and in-person collaboration opportunities. With access to Australia's vibrant tech ecosystem, I bring a global perspective to local and international projects.",
-    color: 0x00FFFF 
-  }
-});
+      mesh: lightOrb, 
+      info: { 
+        title: "Melbourne, Australia 🇦🇺", 
+        content: "Currently based in Melbourne, I offer both remote and in-person collaboration opportunities. With access to Australia's vibrant tech ecosystem, I bring a global perspective to local and international projects.",
+        color: 0x00FFFF 
+      }
+    });
 
-interactiveObjectsRef.current = interactiveObjects;
-
-    
-    // Add some environment objects
-    for (let i = 0; i < 10; i++) {
-      const treeGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4);
-      const treeMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-      const tree = new THREE.Mesh(treeGeometry, treeMaterial);
-      
-      /*
-      tree.position.x = (Math.random() - 0.5) * 80;
-      tree.position.z = (Math.random() - 0.5) * 80;
-      tree.position.y = 2;
-      scene.add(tree);
-      */
-    }
+    interactiveObjectsRef.current = interactiveObjects;
 
     // Event listeners
     const handleKeyDown = (event: KeyboardEvent) => {
       keysRef.current[event.code] = true;
-
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -242,9 +405,9 @@ interactiveObjectsRef.current = interactiveObjects;
 
     // Animation loop
     const moveSpeed = 0.15;    
-const jumpPower = 0.8;    // Increase from 0.45 to 0.8 for higher jumps
-const gravity = -0.04;    // Increase from -0.02 to -0.04 for faster falling
-const groundLevel = 0.5;
+    const jumpPower = 0.8;    
+    const gravity = -0.04;    
+    const groundLevel = 0.5;
     
     const animate = () => {
       requestAnimationFrame(animate);
@@ -257,32 +420,32 @@ const groundLevel = 0.5;
       const velocity = velocityRef.current;
 
       // Calculate movement direction relative to camera azimuth
-const moveVector = new THREE.Vector3();
-const moveForward = keys['KeyW'];
-const moveBackward = keys['KeyS'];
-const moveLeft = keys['KeyA'];
-const moveRight = keys['KeyD'];
+      const moveVector = new THREE.Vector3();
+      const moveForward = keys['KeyW'];
+      const moveBackward = keys['KeyS'];
+      const moveLeft = keys['KeyA'];
+      const moveRight = keys['KeyD'];
 
-if (moveForward || moveBackward || moveLeft || moveRight) {
-  // Forward: from character to camera, projected onto XZ plane and reversed
-  const cameraToChar = new THREE.Vector3();
-  cameraToChar.subVectors(character.position, camera.position);
-  cameraToChar.y = 0;
-  cameraToChar.normalize();
+      if (moveForward || moveBackward || moveLeft || moveRight) {
+        // Forward: from character to camera, projected onto XZ plane and reversed
+        const cameraToChar = new THREE.Vector3();
+        cameraToChar.subVectors(character.position, camera.position);
+        cameraToChar.y = 0;
+        cameraToChar.normalize();
 
-  // Right: perpendicular to forward on XZ plane
-  const right = new THREE.Vector3(-cameraToChar.z, 0, cameraToChar.x);
+        // Right: perpendicular to forward on XZ plane
+        const right = new THREE.Vector3(-cameraToChar.z, 0, cameraToChar.x);
 
-  if (moveForward) moveVector.add(cameraToChar);
-  if (moveBackward) moveVector.sub(cameraToChar);
-  if (moveLeft) moveVector.sub(right);
-  if (moveRight) moveVector.add(right);
+        if (moveForward) moveVector.add(cameraToChar);
+        if (moveBackward) moveVector.sub(cameraToChar);
+        if (moveLeft) moveVector.sub(right);
+        if (moveRight) moveVector.add(right);
 
-  moveVector.normalize().multiplyScalar(moveSpeed);
-  character.position.add(moveVector);
-}
+        moveVector.normalize().multiplyScalar(moveSpeed);
+        character.position.add(moveVector);
+      }
 
-// Jump mechanics
+      // Jump mechanics
       if ((keys['Space'] && !isJumpingRef.current && character.position.y <= groundLevel + 0.01)) {
         velocity.y = jumpPower;
         isJumpingRef.current = true;
@@ -305,8 +468,8 @@ if (moveForward || moveBackward || moveLeft || moveRight) {
       const isMovingHorizontally = keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'];
       
       if (isMovingHorizontally) {
-        character.rotation.x += 0.2; // Increase from 0.1 to 0.3
-        character.rotation.z += 0.10; // Increase from 0.05 to 0.15
+        character.rotation.x += 0.2;
+        character.rotation.z += 0.10;
       }
 
       // Check interactions with objects
@@ -335,18 +498,28 @@ if (moveForward || moveBackward || moveLeft || moveRight) {
       }
 
       // Camera orbit logic
-const radius = 10;
-const { azimuth, elevation } = cameraAngleRef.current;
-const target = character.position.clone();
-const camX = target.x + radius * Math.sin(elevation) * Math.sin(azimuth);
-const camY = target.y + radius * Math.cos(elevation);
-const camZ = target.z + radius * Math.sin(elevation) * Math.cos(azimuth);
-camera.position.set(camX, camY, camZ);
-camera.lookAt(target);
+      const radius = 10;
+      const { azimuth, elevation } = cameraAngleRef.current;
+      const target = character.position.clone();
+      const camX = target.x + radius * Math.sin(elevation) * Math.sin(azimuth);
+      const camY = target.y + radius * Math.cos(elevation);
+      const camZ = target.z + radius * Math.sin(elevation) * Math.cos(azimuth);
+      camera.position.set(camX, camY, camZ);
+      camera.lookAt(target);
 
       // Animate the floating About Me sign (gentle rotation)
       aboutMeSign.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
       signGlow.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+
+      // Minimal, subtle animations
+      projectsSign.rotation.y = Math.sin(Date.now() * 0.0003) * 0.02;
+
+      // Very subtle card floating
+      interactiveObjectsRef.current.forEach((obj, index) => {
+        if (obj.info.title?.includes('E-Commerce') || obj.info.title?.includes('Mobile') || obj.info.title?.includes('AI')) {
+          obj.mesh.position.y = 0.1 + Math.sin(Date.now() * 0.001 + index) * 0.05;
+        }
+      });
 
       renderer.render(scene, camera);
     };
