@@ -1,7 +1,6 @@
 'use client';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -21,7 +20,7 @@ export default function Game3D() {
   const interactiveObjectsRef = useRef<Array<{ mesh: THREE.Mesh, info: any }>>([]);
   const [currentInfo, setCurrentInfo] = useState<any>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const lastInfoRef = useRef<any>(null); // <-- Add this
+  const lastInfoRef = useRef<any>(null);
 
 
   // Sample interactive object data
@@ -112,11 +111,73 @@ const orbLight = new THREE.PointLight(0x00FFFF, 1, 10);
 orbLight.position.set(-25, 2.0, -40); // Match the orb position
 scene.add(orbLight);
 
-interactiveObjects.push({ 
+// Create floating "ABOUT ME" text sign above alleyway
+const createFloatingTextSign = () => {
+  // Create canvas for text
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const context = canvas.getContext('2d')!;
+
+  // Clear and set background
+  context.fillStyle = '#2c3e50'; // Dark blue background
+  context.fillRect(0, 0, 512, 128);
+  
+  // Add border
+  context.strokeStyle = '#ffffff';
+  context.lineWidth = 4;
+  context.strokeRect(4, 4, 504, 120);
+
+  // Draw text
+  context.fillStyle = '#ffffff'; // White text
+  context.font = 'bold 40px Arial';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText('ABOUT ME', 256, 64);
+
+  // Create texture
+  const texture = new THREE.CanvasTexture(canvas);
+  
+  // Create floating sign
+  const signGeometry = new THREE.PlaneGeometry(10, 2.5);
+  const signMaterial = new THREE.MeshBasicMaterial({ 
+    map: texture,
+    transparent: true,
+    side: THREE.DoubleSide
+  });
+  
+  const floatingSign = new THREE.Mesh(signGeometry, signMaterial);
+  floatingSign.position.set(-25, 10, -45); // High above the alleyway
+  scene.add(floatingSign);
+
+  // Add glow effect
+  const glowGeometry = new THREE.PlaneGeometry(11, 3);
+  const glowMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0x00ff88,
+    transparent: true,
+    opacity: 0.2,
+    side: THREE.DoubleSide
+  });
+  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+  glow.position.set(-25, 10, -45.1);
+  scene.add(glow);
+
+  // Add light
+  const signLight = new THREE.PointLight(0x00ff88, 2, 20);
+  signLight.position.set(-25, 10, -43);
+  scene.add(signLight);
+
+  return { sign: floatingSign, glow: glow };
+};
+
+const { sign: aboutMeSign, glow: signGlow } = createFloatingTextSign();
+
+
+    interactiveObjects.push({ 
   mesh: lightOrb, 
   info: { 
     title: "Melbourne, Australia 🇦🇺", 
-    content: "Melbourne is where I am currently based. Here I am able to work in person as well as remotely and WFH",
+    content: "Currently based in Melbourne, I offer both remote and in-person collaboration opportunities. With access to Australia's vibrant tech ecosystem, I bring a global perspective to local and international projects.",
     color: 0x00FFFF 
   }
 });
@@ -180,7 +241,7 @@ interactiveObjectsRef.current = interactiveObjects;
     window.addEventListener('resize', handleResize);
 
     // Animation loop
-    const moveSpeed = 0.8;    
+    const moveSpeed = 0.15;    
 const jumpPower = 0.8;    // Increase from 0.45 to 0.8 for higher jumps
 const gravity = -0.04;    // Increase from -0.02 to -0.04 for faster falling
 const groundLevel = 0.5;
@@ -283,6 +344,10 @@ const camZ = target.z + radius * Math.sin(elevation) * Math.cos(azimuth);
 camera.position.set(camX, camY, camZ);
 camera.lookAt(target);
 
+      // Animate the floating About Me sign (gentle rotation)
+      aboutMeSign.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+      signGlow.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+
       renderer.render(scene, camera);
     };
 
@@ -303,79 +368,74 @@ camera.lookAt(target);
     };
   }, []);
 
- return (
-  <div className="relative w-full h-screen">
-    <div 
-      ref={mountRef} 
-      className="w-full h-full"
-    />
-    
-    <div style={{
-      position: 'absolute',
-      top: '16px',
-      left: '16px',
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      color: 'white',
-      padding: '16px',
-      borderRadius: '8px',
-      zIndex: 100
-    }}>
-      <div>Use WASD or Arrow Keys to move</div>
-      <div>SPACE to jump</div>
-      <div>Simple cube physics!</div>
-    </div>
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+      
+      {/* Info Panel */}
+      {showInfo && currentInfo && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '600px',
+          maxWidth: '90vw',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          color: '#333',
+          padding: '40px',
+          borderRadius: '16px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+          border: '2px solid #e0e0e0',
+          zIndex: 1000,
+          fontFamily: 'system-ui, -apple-system, sans-serif'
+        }}>
+          <h2 style={{ 
+            fontSize: '32px', 
+            fontWeight: '700', 
+            marginBottom: '20px', 
+            color: '#2c3e50',
+            textAlign: 'center',
+            lineHeight: '1.2'
+          }}>
+            {currentInfo.title}
+          </h2>
+          
+          <p style={{ 
+            fontSize: '18px',
+            lineHeight: '1.6',
+            marginBottom: '24px',
+            color: '#555',
+            textAlign: 'center'
+          }}>
+            {currentInfo.content}
+          </p>
+          
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#888',
+            textAlign: 'center',
+            fontStyle: 'italic'
+          }}>
+            Move away to close this panel
+          </div>
+        </div>
+      )}
 
-    {showInfo && currentInfo && (
+      {/* Controls */}
       <div style={{
         position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '600px',
-        maxWidth: '90vw',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        color: '#333',
-        padding: '40px',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-        border: '2px solid #e0e0e0',
-        zIndex: 1000,
-        fontFamily: 'system-ui, -apple-system, sans-serif'
+        bottom: '20px',
+        left: '20px',
+        color: 'white',
+        background: 'rgba(0,0,0,0.7)',
+        padding: '15px',
+        borderRadius: '8px',
+        fontFamily: 'monospace'
       }}>
-        <h2 style={{ 
-          fontSize: '32px', 
-          fontWeight: '700', 
-          marginBottom: '20px', 
-          color: '#2c3e50',
-          textAlign: 'center',
-          lineHeight: '1.2'
-        }}>
-          {currentInfo.title}
-        </h2>
-        
-        <p style={{ 
-          fontSize: '18px',
-          lineHeight: '1.6',
-          marginBottom: '24px',
-          color: '#555',
-          textAlign: 'center'
-        }}>
-          {currentInfo.content}
-        </p>
-        
-        <div style={{ 
-          fontSize: '14px', 
-          color: '#888',
-          textAlign: 'center',
-          fontStyle: 'italic'
-        }}>
-          Move away to close this panel
-        </div>
+        <div>Click to look around</div>
+        <div>WASD to move, SPACE to jump</div>
       </div>
-    )}
-  </div>
-);
-
-
-
+    </div>
+  );
 }
