@@ -10,6 +10,8 @@ export default function Game3D() {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const characterRef = useRef<THREE.Mesh | null>(null);
   const keysRef = useRef<{ [key: string]: boolean }>({});
+  const velocityRef = useRef({ x: 0, y: 0, z: 0 });
+  const isJumpingRef = useRef(false);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -18,9 +20,8 @@ export default function Game3D() {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x87CEEB); // Sky blue background
+    renderer.setClearColor(0xFFA500); // Orange background
     mountRef.current.appendChild(renderer.domElement);
 
     // Store refs
@@ -38,16 +39,16 @@ export default function Game3D() {
 
     // Create ground
     const groundGeometry = new THREE.PlaneGeometry(100, 100);
-    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
+    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x88e788 });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
-    // Create character (simple colored cube)
-    const characterGeometry = new THREE.BoxGeometry(1, 2, 1);
-    const characterMaterial = new THREE.MeshLambertMaterial({ color: 0xff6b6b });
+    // Create character (jumping cube)
+    const characterGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const characterMaterial = new THREE.MeshLambertMaterial({ color: 'white' });
     const character = new THREE.Mesh(characterGeometry, characterMaterial);
-    character.position.y = 1; // Place on ground
+    character.position.y = 0.5; // Half of cube height above ground
     scene.add(character);
     characterRef.current = character;
 
@@ -84,7 +85,10 @@ export default function Game3D() {
     window.addEventListener('resize', handleResize);
 
     // Animation loop
-    const moveSpeed = 0.15;
+    const moveSpeed = 0.12;
+    const jumpPower = 0.25;
+    const gravity = -0.015;
+    const groundLevel = 0.5; // Half of cube height
     
     const animate = () => {
       requestAnimationFrame(animate);
@@ -94,25 +98,53 @@ export default function Game3D() {
       const character = characterRef.current;
       const camera = cameraRef.current;
       const keys = keysRef.current;
+      const velocity = velocityRef.current;
 
-      // Simple movement - always relative to world directions
+      // Horizontal movement
       if (keys['KeyW'] || keys['ArrowUp']) {
-        character.position.z -= moveSpeed; // Move forward (negative Z)
+        character.position.z -= moveSpeed;
       }
       if (keys['KeyS'] || keys['ArrowDown']) {
-        character.position.z += moveSpeed; // Move backward (positive Z)
+        character.position.z += moveSpeed;
       }
       if (keys['KeyA'] || keys['ArrowLeft']) {
-        character.position.x -= moveSpeed; // Move left (negative X)
+        character.position.x -= moveSpeed;
       }
       if (keys['KeyD'] || keys['ArrowRight']) {
-        character.position.x += moveSpeed; // Move right (positive X)
+        character.position.x += moveSpeed;
       }
 
-      // Static camera that follows player from behind and above
-      const cameraOffset = new THREE.Vector3(0, 6, 10);// Behind and above
-      camera.position.copy(character.position).add(cameraOffset);
+      // Jump mechanics
+      if ((keys['Space'] && !isJumpingRef.current && character.position.y <= groundLevel + 0.01)) {
+        velocity.y = jumpPower;
+        isJumpingRef.current = true;
+      }
+
+      // Apply gravity
+      if (character.position.y > groundLevel || velocity.y > 0) {
+        velocity.y += gravity;
+        character.position.y += velocity.y;
+        
+        // Land on ground
+        if (character.position.y <= groundLevel) {
+          character.position.y = groundLevel;
+          velocity.y = 0;
+          isJumpingRef.current = false;
+        }
+      }
+
+      // Simple movement animation - slight rotation when moving
+      const isMovingHorizontally = keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'] ||
+                                   keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'];
       
+      if (isMovingHorizontally) {
+        character.rotation.x += 0.1;
+        character.rotation.z += 0.05;
+      }
+
+      // Camera positioned behind and above the cube
+      const cameraOffset = new THREE.Vector3(0, 6, 10);
+      camera.position.copy(character.position).add(cameraOffset);
       
       // Always look at the character
       camera.lookAt(character.position);
@@ -143,8 +175,8 @@ export default function Game3D() {
       />
       <div className="absolute top-4 left-4 text-white z-10 bg-black bg-opacity-50 p-3 rounded">
         <div>Use WASD or Arrow Keys to move</div>
-        <div>W = Forward, S = Backward, A = Left, D = Right</div>
-        <div>Static bird's eye view camera</div>
+        <div>SPACE or W to jump</div>
+        <div>Simple cube physics!</div>
       </div>
     </div>
   );
