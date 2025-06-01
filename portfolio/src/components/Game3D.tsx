@@ -84,8 +84,8 @@ export default function Game3D() {
     });
 
     // Create Project Area
-    const projectAreaX = 25;
-    const projectAreaZ = 0;
+    const projectAreaX = 35;
+    const projectAreaZ = 35;
 
     // Create clean, minimal floor area
     const projectFloorGeometry = new THREE.PlaneGeometry(40, 30);
@@ -107,7 +107,7 @@ export default function Game3D() {
         tech: ["React", "Node.js", "MongoDB"],
         description: "Full-stack e-commerce solution with real-time inventory and payment processing",
         color: 0x4A90E2,
-        position: { x: projectAreaX - 12, z: projectAreaZ - 8 }
+        position: { x: projectAreaX - 12, z: projectAreaZ + 8 } // Changed from -8 to +8
       },
       {
         title: "Mobile Game",
@@ -115,7 +115,7 @@ export default function Game3D() {
         tech: ["Unity", "C#", "Firebase"],
         description: "Cross-platform puzzle game with 10k+ downloads",
         color: 0xF5A623,
-        position: { x: projectAreaX, z: projectAreaZ - 10 }
+        position: { x: projectAreaX, z: projectAreaZ + 10 } // Changed from -10 to +10
       },
       {
         title: "AI Assistant",
@@ -123,7 +123,7 @@ export default function Game3D() {
         tech: ["React", "OpenAI", "Python"],
         description: "Conversational AI with voice recognition and context awareness",
         color: 0x7ED321,
-        position: { x: projectAreaX + 12, z: projectAreaZ - 8 }
+        position: { x: projectAreaX + 12, z: projectAreaZ + 8 } // Changed from -8 to +8
       }
     ];
 
@@ -212,6 +212,7 @@ export default function Game3D() {
       
       const card = new THREE.Mesh(cardGeometry, cardMaterial);
       card.position.set(project.position.x, 3 + index * 0.1, project.position.z);
+      card.rotation.y = Math.PI; // Add this line to rotate 180 degrees
       card.castShadow = true;
       scene.add(card);
 
@@ -223,7 +224,7 @@ export default function Game3D() {
         opacity: 0.8
       });
       const indicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
-      indicator.position.set(project.position.x, 0.1, project.position.z + 3);
+      indicator.position.set(project.position.x, 0.1, project.position.z - 3); // Changed from +3 to -3
       indicator.rotation.x = -Math.PI / 2;
       scene.add(indicator);
 
@@ -250,6 +251,10 @@ export default function Game3D() {
       canvas.height = 100;
       const context = canvas.getContext('2d')!;
 
+      // Flip the canvas horizontally to counteract the rotation
+      context.scale(-1, 1);
+      context.translate(-400, 0);
+
       context.fillStyle = 'rgba(255,255,255,0.95)';
       context.fillRect(0, 0, 400, 100);
       
@@ -268,7 +273,8 @@ export default function Game3D() {
       });
       
       const sign = new THREE.Mesh(signGeometry, signMaterial);
-      sign.position.set(projectAreaX - 15, 2, projectAreaZ + 10);
+      sign.position.set(projectAreaX - 15, 2, projectAreaZ - 10);
+      sign.rotation.y = Math.PI; // Keep the rotation
       scene.add(sign);
 
       return sign;
@@ -513,6 +519,7 @@ export default function Game3D() {
 
       // Minimal, subtle animations
       projectsSign.rotation.y = Math.sin(Date.now() * 0.0003) * 0.02;
+      
 
       // Very subtle card floating
       interactiveObjectsRef.current.forEach((obj, index) => {
