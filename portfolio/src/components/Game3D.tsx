@@ -86,6 +86,15 @@ loader.load('/melbourne.glb', (gltf) => {
   scene.add(melbourne);
 });
 
+/// Load Desk  model
+loader.load('/low_poly_computer_desk.glb', (gltf) => {
+  const desk = gltf.scene;
+  desk.position.set(-20, 0, -45); 
+  desk.scale.set(0.05, 0.05, 0.05);
+  desk.rotation.y = 0;
+  scene.add(desk);
+});
+
 
 
 const orbGeometry = new THREE.SphereGeometry(0.3, 16, 16);
@@ -318,23 +327,49 @@ camera.lookAt(target);
 
     {showInfo && currentInfo && (
       <div style={{
-        position: 'absolute',
-        bottom: '16px',
-        right: '16px',
-        width: '320px',
-        backgroundColor: 'rgba(0,0,0,0.9)',
-        color: 'white',
-        padding: '24px',
-        borderRadius: '8px',
-        border: '1px solid white',
-        zIndex: 100
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '600px',
+        maxWidth: '90vw',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        color: '#333',
+        padding: '40px',
+        borderRadius: '16px',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        border: '2px solid #e0e0e0',
+        zIndex: 1000,
+        fontFamily: 'system-ui, -apple-system, sans-serif'
       }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', color: '#ffd700' }}>
+        <h2 style={{ 
+          fontSize: '32px', 
+          fontWeight: '700', 
+          marginBottom: '20px', 
+          color: '#2c3e50',
+          textAlign: 'center',
+          lineHeight: '1.2'
+        }}>
           {currentInfo.title}
-        </h3>
-        <p style={{ marginBottom: '16px' }}>{currentInfo.content}</p>
-        <div style={{ fontSize: '12px', color: '#ccc' }}>
-          Move away to close this info panel
+        </h2>
+        
+        <p style={{ 
+          fontSize: '18px',
+          lineHeight: '1.6',
+          marginBottom: '24px',
+          color: '#555',
+          textAlign: 'center'
+        }}>
+          {currentInfo.content}
+        </p>
+        
+        <div style={{ 
+          fontSize: '14px', 
+          color: '#888',
+          textAlign: 'center',
+          fontStyle: 'italic'
+        }}>
+          Move away to close this panel
         </div>
       </div>
     )}
