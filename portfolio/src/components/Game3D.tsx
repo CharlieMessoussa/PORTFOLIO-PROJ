@@ -1,5 +1,7 @@
 'use client';
 
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -12,7 +14,9 @@ export default function Game3D() {
   const keysRef = useRef<{ [key: string]: boolean }>({});
   const velocityRef = useRef({ x: 0, y: 0, z: 0 });
   const isJumpingRef = useRef(false);
-  
+  const cameraAngleRef = useRef({ azimuth: 0, elevation: Math.PI / 4 });
+  const pointerLockedRef = useRef(false);
+
   //interaction with objects
   const interactiveObjectsRef = useRef<Array<{ mesh: THREE.Mesh, info: any }>>([]);
   const [currentInfo, setCurrentInfo] = useState<any>(null);
@@ -68,14 +72,22 @@ const sampleData = {
     characterRef.current = character;
 
 
-    const testGeometry = new THREE.BoxGeometry(1, 1, 1);
-const testMaterial = new THREE.MeshLambertMaterial({ color: sampleData.color });
-const testObject = new THREE.Mesh(testGeometry, testMaterial);
-testObject.position.set(5, 0.5, 5); // Position it near the character
-scene.add(testObject);
+    // Create multiple interactive objects
+const interactiveObjects: Array<{ mesh: THREE.Mesh, info: any }> = [];
 
-// Add to interactive objects array
-interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
+
+/// Load Melbourne alleyway model
+const loader = new GLTFLoader();
+loader.load('/melbourne.glb', (gltf) => {
+  const melbourne = gltf.scene;
+  melbourne.position.set(0, 0, -6);
+  melbourne.scale.set(10, 10, 10); 
+  melbourne.rotation.y = Math.PI / 2; // Rotate to face the camera
+  scene.add(melbourne);
+});
+
+
+interactiveObjectsRef.current = interactiveObjects;
 
     
     // Add some environment objects
@@ -93,6 +105,20 @@ interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
     // Event listeners
     const handleKeyDown = (event: KeyboardEvent) => {
       keysRef.current[event.code] = true;
+
+      // Camera look controls
+      if (event.code === 'ArrowLeft') {
+        cameraAngleRef.current.azimuth -= 0.05;
+      }
+      if (event.code === 'ArrowRight') {
+        cameraAngleRef.current.azimuth += 0.05;
+      }
+      if (event.code === 'ArrowUp') {
+        cameraAngleRef.current.elevation = Math.min(cameraAngleRef.current.elevation + 0.05, Math.PI / 2 - 0.1);
+      }
+      if (event.code === 'ArrowDown') {
+        cameraAngleRef.current.elevation = Math.max(cameraAngleRef.current.elevation - 0.05, 0.05);
+      }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -105,6 +131,26 @@ interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
+
+    renderer.domElement.addEventListener('click', () => {
+      renderer.domElement.requestPointerLock();
+    });
+
+    const handlePointerLockChange = () => {
+      pointerLockedRef.current = document.pointerLockElement === renderer.domElement;
+    };
+
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!pointerLockedRef.current) return;
+      const sensitivity = 0.002;
+      cameraAngleRef.current.azimuth -= event.movementX * sensitivity;
+      cameraAngleRef.current.elevation -= event.movementY * sensitivity;
+      cameraAngleRef.current.elevation = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, cameraAngleRef.current.elevation));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
@@ -126,21 +172,33 @@ interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
       const keys = keysRef.current;
       const velocity = velocityRef.current;
 
-      // Horizontal movement
-      if (keys['KeyW'] || keys['ArrowUp']) {
-        character.position.z -= moveSpeed;
-      }
-      if (keys['KeyS'] || keys['ArrowDown']) {
-        character.position.z += moveSpeed;
-      }
-      if (keys['KeyA'] || keys['ArrowLeft']) {
-        character.position.x -= moveSpeed;
-      }
-      if (keys['KeyD'] || keys['ArrowRight']) {
-        character.position.x += moveSpeed;
-      }
+      // Calculate movement direction relative to camera azimuth
+const moveVector = new THREE.Vector3();
+const moveForward = keys['KeyW'];
+const moveBackward = keys['KeyS'];
+const moveLeft = keys['KeyA'];
+const moveRight = keys['KeyD'];
 
-      // Jump mechanics
+if (moveForward || moveBackward || moveLeft || moveRight) {
+  // Forward: from character to camera, projected onto XZ plane and reversed
+  const cameraToChar = new THREE.Vector3();
+  cameraToChar.subVectors(character.position, camera.position);
+  cameraToChar.y = 0;
+  cameraToChar.normalize();
+
+  // Right: perpendicular to forward on XZ plane
+  const right = new THREE.Vector3(-cameraToChar.z, 0, cameraToChar.x);
+
+  if (moveForward) moveVector.add(cameraToChar);
+  if (moveBackward) moveVector.sub(cameraToChar);
+  if (moveLeft) moveVector.sub(right);
+  if (moveRight) moveVector.add(right);
+
+  moveVector.normalize().multiplyScalar(moveSpeed);
+  character.position.add(moveVector);
+}
+
+// Jump mechanics
       if ((keys['Space'] && !isJumpingRef.current && character.position.y <= groundLevel + 0.01)) {
         velocity.y = jumpPower;
         isJumpingRef.current = true;
@@ -193,12 +251,15 @@ interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
         setShowInfo(!!nearObject);
       }
 
-      // Camera positioned behind and above the cube
-      const cameraOffset = new THREE.Vector3(0, 6, 10);
-      camera.position.copy(character.position).add(cameraOffset);
-      
-      // Always look at the character
-      camera.lookAt(character.position);
+      // Camera orbit logic
+const radius = 10;
+const { azimuth, elevation } = cameraAngleRef.current;
+const target = character.position.clone();
+const camX = target.x + radius * Math.sin(elevation) * Math.sin(azimuth);
+const camY = target.y + radius * Math.cos(elevation);
+const camZ = target.z + radius * Math.sin(elevation) * Math.cos(azimuth);
+camera.position.set(camX, camY, camZ);
+camera.lookAt(target);
 
       renderer.render(scene, camera);
     };
@@ -207,6 +268,8 @@ interactiveObjectsRef.current = [{ mesh: testObject, info: sampleData }];
 
     // Cleanup
     return () => {
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', handleResize);
